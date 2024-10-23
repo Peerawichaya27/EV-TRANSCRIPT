@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # Web3 setup
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:7545", request_kwargs={'timeout': 500}))
-contract_address = Web3.to_checksum_address('0x9C7A37652B5bC0487e045f720Eeb27D22fCF2A76')  # Replace with your deployed contract address
+contract_address = Web3.to_checksum_address('0x05B6922214DEb02643EF73d57a3e944f2d659095')  # Replace with your deployed contract address
 
 # Load the contract ABI
 with open('e-transcript/build/contracts/SchnorrBatchVerification.json') as f:
@@ -43,7 +43,7 @@ def store_did_to_index():
 
             # Call the smart contract function to store DID and index
             tx_hash = contract.functions.storeDidToIndex(student_did, student_index).transact({
-                'from': w3.eth.accounts[2], 'gas': 20000000
+                'from': w3.eth.accounts[4], 'gas': 200000000
             })
             # Wait for the transaction to be mined
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -61,8 +61,8 @@ def store_did_to_index():
         })
 
 # Static variables for Schnorr proof
-G = 2  # Generator (example)
-P = 23  # Prime modulus (example)
+G = 2  # Generator
+P = 23  # Prime modulus
 
 @app.route('/batch_verify', methods=['POST'])
 def batch_verify_from_form():
@@ -91,11 +91,16 @@ def batch_verify_from_form():
             student_did = student['student_did']
             student_email = student['email']
             
-            # Retrieve student index from the blockchain by their DID
-            student_index = contract.functions.getIndexByDid(student_did).call()
-
+            # Log the student DID for debugging
+            print(f"Starting verification for student_did={student_did}, student_email={student_email}")
+            
             # Get the hashed VC from the IPFS data for this student
-            ipfs_vc = ipfs_data.get(str(student_index), {}).get('hashed_vc')
+            ipfs_vc = ipfs_data.get("0", {}).get('hashed_vc')
+            print(f"Retrieved ipfs_vc: {ipfs_vc}")
+
+            if not ipfs_vc:
+                print(f"Error: No hashed VC found for student {student_did}")
+                continue
 
             # Perform Schnorr proof and VC verification for each iteration
             hashed_email = hashlib.sha256(student_email.encode()).hexdigest()
@@ -112,27 +117,31 @@ def batch_verify_from_form():
             s = (r + challenge * hashed_secret) % (P-1)
 
             # Get employer hashed email from the token file
-            employer_hashed_email = token_data[str(student_index)]['acl']['employer_hashed_email']
+            employer_hashed_email = token_data['0']['acl']['employer_hashed_email']
+            print(f"Employer hashed email: {employer_hashed_email}")
+
+            # Log values to check
+            print(f"R: {R}, s: {s}, G: {G}, P: {P}, challenge: {challenge}, employer_hashed_email: {employer_hashed_email}")
 
             # Call the unified verification function on the blockchain (Schnorr + VC verification)
             tx_hash = contract.functions.verify(
                 R, s, G, P, challenge, employer_hashed_email,
-                token_data[str(student_index)]['verifiablePresentation']['verifiableCredential'][0]['hash'], 
+                token_data['0']['verifiablePresentation']['verifiableCredential'][0]['hash'], 
                 student_did, ipfs_vc
-            ).transact({'from': w3.eth.accounts[2], 'gas': 20000000})
-            
-            # Wait for the transaction receipt (mined)
+            ).transact({'from': w3.eth.accounts[3], 'gas': 200000000})
+
+            # Wait for the transaction receipt
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
-            # Check if the transaction was successful
+            # Log if the transaction succeeded or failed
             if receipt['status'] == 1:
-                valid_students.append({
-                    "student_did": student_did,
-                    "status": "verified and VC valid",
-                    "loop_iteration": i + 1
-                })
+                print(f"Transaction succeeded for student_did={student_did}")
+            else:
+                print(f"Transaction failed for student_did={student_did}, iteration={i + 1}. Gas used: {receipt['gasUsed']}")
 
-            # Add the gas used by this transaction to the total
+
+            # Log the gas used for each iteration
+            print(f"Gas used for iteration {i+1}: {receipt['gasUsed']}")
             total_gas_used += receipt['gasUsed']
 
         # Measure the total time taken for the batch verification process
@@ -140,10 +149,10 @@ def batch_verify_from_form():
 
         # Render the results in the HTML page
         return render_template('batch_result.html', 
-                               valid_students=valid_students, 
-                               verification_time=verification_time, 
-                               loop_count=loop_count,
-                               total_gas_used=total_gas_used)
+                       valid_students=valid_students, 
+                       verification_time=verification_time, 
+                       loop_count=loop_count,
+                       total_gas_used=total_gas_used)
 
     except Exception as e:
         return jsonify({"status": "failed", "message": str(e)})
