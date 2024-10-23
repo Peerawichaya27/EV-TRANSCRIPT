@@ -1,0 +1,10 @@
+
+
+Un-Batch Verification Time in Seconds and Total Gas Used:
+    1 proof =  0.1058042049407959 seconds , Total Gas Used: 33864 units
+    10 proof = 0.42635321617126465 seconds ,  Total Gas Used: 338640 units
+    50 proof = 1.8558950424194336 seconds , Total Gas Used: 1693104 units
+    100 proof = 3.4753098487854004 seconds , Total Gas Used: 3386328 units
+    250 proof = 8.25920295715332 seconds , Total Gas Used: 8465796 units
+    500 proof = 16.004417181015015 seconds , Total Gas Used: 16931436 units
+    1000 proof = 31.47719097137451 seconds , Total Gas Used: 33862728 units
