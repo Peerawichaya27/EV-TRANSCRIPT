@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload PDF for Signing and Verification</title>
+</head>
+<body>
+    <h1>Upload PDF for Signing and Verification</h1>
+    <form action="/process" method="post" enctype="multipart/form-data">
+        <input type="file" name="pdf_file" required><br><br>
+        <label for="num_loops">Number of Verification Loops:</label>
+        <input type="number" name="num_loops" id="num_loops" value="1" min="1" max="1000" required><br><br>
+        <button type="submit">Process File</button>
+    </form>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+</body>
+</html>

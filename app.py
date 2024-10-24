@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # Web3 setup
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:7545", request_kwargs={'timeout': 500}))
-contract_address = Web3.to_checksum_address('0x05B6922214DEb02643EF73d57a3e944f2d659095')  # Replace with your deployed contract address
+contract_address = Web3.to_checksum_address('0x73Dd3842730b975613fB78AA8f6ad25f260a141a')  # Replace with your deployed contract address
 
 # Load the contract ABI
 with open('e-transcript/build/contracts/SchnorrBatchVerification.json') as f:
