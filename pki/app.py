@@ -64,7 +64,7 @@ def process_file():
         verification_status = "Verification successful!"
         for i in range(int(num_loops)):
             # Append a random number to the PDF data
-            random_number = random.randint(0, 10000)
+            random_number = random.randint(100, 100000000000000000000000000)
             pdf_data = original_pdf_data + str(random_number).encode()
 
             signature = private_key.sign(
