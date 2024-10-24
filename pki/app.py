@@ -3,14 +3,15 @@ from werkzeug.utils import secure_filename
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from time import time
 import os
+import random
 
 app = Flask(__name__)
 app.secret_key = 'super secret key'  # Needed for flashing messages
 
-# Ensure these directories exist in the same path where the app is run
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -20,7 +21,6 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def load_keys():
-    # Normally you would load these from secure storage
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -56,13 +56,17 @@ def process_file():
         pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         pdf_file.save(pdf_path)
 
-        total_time_start = time()  # Start time for total processing
+        total_time_start = time()
 
-        for _ in range(int(num_loops)):
-            with open(pdf_path, 'rb') as f:
-                pdf_data = f.read()
+        with open(pdf_path, 'rb') as f:
+            original_pdf_data = f.read()
 
-            # Sign the PDF data
+        verification_status = "Verification successful!"
+        for i in range(int(num_loops)):
+            # Append a random number to the PDF data
+            random_number = random.randint(0, 10000)
+            pdf_data = original_pdf_data + str(random_number).encode()
+
             signature = private_key.sign(
                 pdf_data,
                 padding.PSS(
@@ -72,7 +76,6 @@ def process_file():
                 hashes.SHA256()
             )
 
-            # Perform verification
             try:
                 public_key.verify(
                     signature,
@@ -83,13 +86,12 @@ def process_file():
                     ),
                     hashes.SHA256()
                 )
-                verification_status = "Verification successful!"
             except Exception as e:
                 verification_status = f"Verification failed: {str(e)}"
                 break
 
-        total_time_end = time()  # End time for total processing
-        total_elapsed_time = total_time_end - total_time_start  # Total elapsed time
+        total_time_end = time()
+        total_elapsed_time = total_time_end - total_time_start
 
         return (f"{verification_status}\n"
                 f"Total time for all cycles: {total_elapsed_time:.4f} seconds.")
